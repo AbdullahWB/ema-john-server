@@ -9,7 +9,7 @@ app.use(cors());
 app.use(express.json());
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.luk9jtm.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -30,13 +30,29 @@ async function run() {
     const productCollection = client.db('emaJohnDB').collection('products');
 
     app.get('/product', async (req, res) => {
-      const result = await productCollection.find().toArray();
+      const page = parseInt(req.query.page) || 0;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = page * limit;
+      const result = await productCollection.find().skip(skip).limit(limit).toArray();
       res.send(result)
     })
 
     app.get('/totalProducts', async (req, res) => { 
       const result = await productCollection.estimatedDocumentCount();
       res.send({totalProduct:result})
+    })
+
+    app.post('/productByIds', async (req, res) => {
+      // const result = await productCollection.estimatedDocumentCount();
+      // res.send({ totalProduct: result })
+      console.log(req.body);
+      const ids = req.body;
+      const objectIds = ids.map(id=> new ObjectId(id))
+      const query = { _id: { $in: objectIds } }
+        console.log(query);
+      console.log(ids);
+      const result = await productCollection.find(query).toArray();
+      res.send(result)
     })
 
 
